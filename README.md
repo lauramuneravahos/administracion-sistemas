@@ -29,7 +29,6 @@ Todo el entorno se levanta con **un solo comando** (`vagrant up`) y el servicio 
 | `Vagrantfile` | Describe las dos máquinas virtuales y su red privada. |
 | `provisioning.sh` | Script que instala Docker y Docker Compose en la VM `web`. |
 | `docker-compose.yml` | Define el servicio Nginx y publica el puerto 80. |
-| `memoria.md` | Memoria completa de la práctica. |
 | `.gitignore` | Evita subir la carpeta `.vagrant/` y los logs. |
 | `.gitattributes` | Fuerza saltos de línea LF en los ficheros de texto. |
 
@@ -77,12 +76,10 @@ Si el `ping` responde y el `curl` devuelve el HTML de Nginx, las dos máquinas s
 
 ---
 
-## Autores y colaboración
+## Autores
 
 - **Laura Munera Vahos** — [@lauramuneravahos](https://github.com/lauramuneravahos)
 - **Yanira Porras Gago** — [@yanira-26](https://github.com/yanira-26)
-
-Ambas tienen permisos de escritura en este repositorio.
 
 ---
 
