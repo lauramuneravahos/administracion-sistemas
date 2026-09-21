@@ -18,7 +18,6 @@
 
 <!--
 CAPTURA 1 (opcional): captura de la página principal del repositorio en GitHub.
-Aquí se ve que el repositorio está creado y con los ficheros subidos.
 Sugerencia de nombre de archivo: capturas/01-repositorio-github.png
 -->
 
@@ -75,7 +74,6 @@ En esta práctica **usamos las dos cosas a la vez**: una máquina virtual como b
 <!--
 CAPTURA 2 (recomendada): captura de la ventana de VirtualBox mostrando las dos VMs
 "practica1-web" y "practica1-cliente" en estado "Running".
-Esto evidencia que las máquinas virtuales existen y están funcionando.
 Sugerencia de nombre de archivo: capturas/02-virtualbox-vms.png
 -->
 
@@ -132,11 +130,11 @@ Sugerencia de nombre de archivo: capturas/03-versiones.png
 ### 4.3 Cuentas
 
 - Una cuenta en **GitHub** con el correo institucional `lauramuneravahos@usal.es`.
+- Una colaboradora añadida al repositorio: **`yanira-26`** (Yanira Porras Gago).
 
 <!--
 CAPTURA 4 (opcional): captura de Settings → Emails en GitHub,
 donde se ve que el correo @usal.es está "Primary" y "Verified".
-Esto evidencia que el correo está bien configurado.
 Sugerencia de nombre de archivo: capturas/04-github-email.png
 -->
 
@@ -224,6 +222,24 @@ La primera vez que hicimos `git push` nos pidió iniciar sesión y se abrió el 
 CAPTURA 7 (recomendada): captura de la terminal con el resultado del `git push`
 donde se ve "new branch main -> main" y "branch 'main' set up to track 'origin/main'".
 Sugerencia de nombre de archivo: capturas/07-git-push.png
+-->
+
+### 6.3 Incorporación de colaboradora
+
+Como la práctica es en pareja, había que dar acceso a la compañera. Desde el repositorio en GitHub:
+
+1. Entramos en **Settings → Collaborators**.
+2. Clic en **Add people**.
+3. Buscamos su usuario de GitHub: **`yanira-26`**.
+4. La invitamos con permisos de **Write**.
+5. Ella recibió la invitación por correo y la aceptó.
+
+Tras aceptarla, el repositorio pasó de tener **0 colaboradores** a **1 colaborador**, y ya aparece con permisos para hacer `push` sobre el repositorio.
+
+<!--
+CAPTURA 7B (recomendada): captura de Settings → Collaborators donde se ve
+"1 collaborator" y "yanira-26 Collaborator".
+Sugerencia de nombre de archivo: capturas/07b-colaboradora.png
 -->
 
 ---
@@ -468,6 +484,7 @@ Necesita tener instalado VirtualBox, Vagrant y Git.
 - Al principio, Git estaba configurado con un correo personal y tuvimos que cambiarlo al de la universidad para que los commits se vieran bien en GitHub.
 - Nos salió un aviso sobre los saltos de línea (LF y CRLF) y lo solucionamos cambiando una configuración y añadiendo un fichero `.gitattributes`.
 - La primera descarga de la imagen de Ubuntu tardó bastante.
+- Al trabajar en pareja, tuvimos que añadir a Yanira como colaboradora del repositorio para que pudiera subir cambios con su propia cuenta.
 
 ### 10.2 Aprendizajes
 
@@ -475,11 +492,11 @@ Necesita tener instalado VirtualBox, Vagrant y Git.
 - Que Vagrant sirve para no tener que crear las máquinas virtuales a mano.
 - Que Docker Compose hace mucho más fácil levantar un servicio.
 - Que la red privada es lo que permite que las dos máquinas se vean entre ellas.
-- Que usar bien Git (con el correo correcto y con los ficheros bien configurados) evita muchos problemas.
+- Que usar bien Git (con el correo correcto, con los ficheros bien configurados y con los colaboradores añadidos) evita muchos problemas.
 
 ### 10.3 Aplicación en el mundo real
 
-Cuando un equipo de trabajo quiere que cualquiera pueda tener el mismo entorno en su ordenador, usa herramientas como estas. Vagrant describe las máquinas y Docker describe el servicio. Así todos trabajan igual sin tener que instalar cosas a mano.
+Cuando un equipo de trabajo quiere que cualquiera pueda tener el mismo entorno en su ordenador, usa herramientas como estas. Vagrant describe las máquinas y Docker describe el servicio. Así todos trabajan igual sin tener que instalar cosas a mano. Además, Git permite que varias personas trabajen sobre el mismo proyecto sin pisarse.
 
 ---
 
@@ -500,3 +517,5 @@ Cuando un equipo de trabajo quiere que cualquiera pueda tener el mismo entorno e
 - **DeepSeek**: ayuda para resolver errores en los comandos de Git y Docker.
 
 ---
+
+> **Nota final (Grupo 6)**: el vídeo es parte de la nota. No basta con subir los ficheros; hay que explicar qué hace cada uno.
