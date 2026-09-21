@@ -1,21 +1,6 @@
 <!-- markdownlint-disable MD033 MD022 MD042 MD060 -->
 <!-- markdownlint-disable -->
 
-<style>
-@page { margin: 2.5cm 2cm; }
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10pt;
-}
-th, td {
-  border: 1px solid #ccc;
-  padding: 6px 8px;
-}
-th { background: #eaeaea; }
-</style>
-
 ## Memoria Práctica 1 — Vagrant + Docker
 
 | Campo | Valor |
