@@ -4,10 +4,10 @@
 # Práctica 1 — Vagrant + Docker
 
 **Grupo 6** · Laura Munera Vahos · Yanira Porras Gago
-Asignatura: Administración de Sistemas Informáticos
-Grado en Ingeniería Informática en Sistemas de Información
-Escuela Politécnica Superior de Zamora — Universidad de Salamanca
-Curso 2026/2027
+**Asignatura:** Administración de Sistemas Informáticos
+**Grado:** Ingeniería Informática en Sistemas de Información
+**Centro:** Escuela Politécnica Superior de Zamora — Universidad de Salamanca
+**Curso:** 2026/2027
 
 ---
 
@@ -34,19 +34,93 @@ Todo el entorno se levanta con **un solo comando** (`vagrant up`) y el servicio 
 
 ---
 
-## Cómo reproducirlo
+## Cómo reproducir el proyecto
 
-Requisitos: tener instalados **VirtualBox**, **Vagrant** y **Git**, y la virtualización activada en la BIOS.
+Esta sección explica **paso a paso** cómo clonar el repositorio y levantar el entorno desde cero en cualquier ordenador.
+
+### 1. Requisitos previos
+
+Antes de empezar, hay que tener instalado:
+
+| Programa | Para qué sirve | Dónde descargarlo |
+|---|---|---|
+| **VirtualBox** | Crea las máquinas virtuales. | https://www.virtualbox.org/wiki/Downloads |
+| **Vagrant** | Crea las máquinas automáticamente. | https://developer.hashicorp.com/vagrant/downloads |
+| **Git** | Para clonar el repositorio. | https://git-scm.com/downloads |
+
+Además:
+
+- **Virtualización activada** en la BIOS/UEFI (Intel VT-x o AMD-V).
+- Al menos **4 GB de RAM libres** (la VM `web` usa 2 GB).
+- **Conexión a Internet** (para descargar la imagen de Ubuntu y los paquetes de Docker).
+
+### 2. Clonar el repositorio
+
+Abre una terminal (PowerShell en Windows, bash en Linux/macOS) y ejecuta:
 
 ```bash
 git clone https://github.com/lauramuneravahos/administracion-sistemas.git
 cd administracion-sistemas
-vagrant up
-vagrant ssh web
-cd /vagrant && docker-compose up -d
 ```
 
-Después, desde el navegador del equipo anfitrión:
+Con esto tendrás todos los ficheros del proyecto en tu ordenador.
+
+### 3. Levantar las máquinas virtuales
+
+Desde la carpeta del proyecto:
+
+```bash
+vagrant up
+```
+
+Este único comando hace **todo lo siguiente automáticamente**:
+
+1. Descarga la imagen base de Ubuntu (`ubuntu/jammy64`) si no la tiene.
+2. Crea y arranca las dos máquinas virtuales: **web** y **cliente**.
+3. Ejecuta el script `provisioning.sh` en la máquina **web**, que instala Docker y Docker Compose.
+
+> ⏳ **La primera vez puede tardar entre 10 y 25 minutos**, sobre todo por la descarga de la imagen de Ubuntu. Las siguientes veces tarda mucho menos.
+
+Para comprobar que las máquinas están encendidas:
+
+```bash
+vagrant status
+```
+
+Debe mostrar las dos máquinas como `running`.
+
+### 4. Desplegar el servicio con Docker Compose
+
+Entra en la máquina **web**:
+
+```bash
+vagrant ssh web
+```
+
+Una vez dentro, ve a la carpeta sincronizada (donde está el `docker-compose.yml`) y levanta el servicio:
+
+```bash
+cd /vagrant
+docker-compose up -d
+```
+
+Comprueba que el contenedor está corriendo:
+
+```bash
+docker ps
+```
+
+Debe aparecer un contenedor con la imagen `nginx` y el puerto `80` publicado.
+
+Para salir de la máquina virtual:
+
+```bash
+exit
+```
+
+### 5. Verificar desde el equipo anfitrión
+
+Abre el navegador del ordenador donde has ejecutado `vagrant up` y entra en:
 
 ```
 http://192.168.56.10
@@ -54,25 +128,80 @@ http://192.168.56.10
 
 Debería aparecer la página de bienvenida de Nginx.
 
----
+### 6. Verificar la comunicación entre las dos máquinas
 
-## Cómo comprobar que funciona
-
-Desde el equipo anfitrión, abre en el navegador:
-
-```
-http://192.168.56.10
-```
-
-Desde la máquina **cliente**:
+Entra en la máquina **cliente**:
 
 ```bash
 vagrant ssh cliente
+```
+
+Dentro, haz un `ping` a la máquina **web** para comprobar que se ven:
+
+```bash
 ping -c 3 192.168.56.10
+```
+
+Y accede al servicio Nginx con `curl`:
+
+```bash
 curl http://192.168.56.10
 ```
 
-Si el `ping` responde y el `curl` devuelve el HTML de Nginx, las dos máquinas se comunican correctamente.
+- Si el `ping` responde con **3 paquetes recibidos**, las dos máquinas se comunican.
+- Si el `curl` devuelve el HTML de Nginx, el servicio es accesible desde la máquina cliente.
+
+Para salir:
+
+```bash
+exit
+```
+
+### 7. Parar y destruir el entorno
+
+Cuando ya no necesites las máquinas:
+
+**Apagarlas** (se conservan los datos):
+
+```bash
+vagrant halt
+```
+
+**Eliminarlas por completo** (se borra todo, y el siguiente `vagrant up` las recrea desde cero):
+
+```bash
+vagrant destroy -f
+```
+
+---
+
+## Resumen de comandos
+
+```bash
+# 1. Clonar
+git clone https://github.com/lauramuneravahos/administracion-sistemas.git
+cd administracion-sistemas
+
+# 2. Levantar las máquinas
+vagrant up
+
+# 3. Desplegar el servicio
+vagrant ssh web
+cd /vagrant && docker-compose up -d
+exit
+
+# 4. Verificar desde el navegador del anfitrión
+# http://192.168.56.10
+
+# 5. Verificar desde la máquina cliente
+vagrant ssh cliente
+ping -c 3 192.168.56.10
+curl http://192.168.56.10
+exit
+
+# 6. Limpiar (opcional)
+vagrant destroy -f
+```
 
 ---
 
@@ -92,5 +221,3 @@ Si el `ping` responde y el `curl` devuelve el HTML de Nginx, las dos máquinas s
 - GitHub: https://docs.github.com/
 
 ---
-
-> **Grupo 6** — Curso 2026/2027
