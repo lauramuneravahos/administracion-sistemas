@@ -1,152 +1,250 @@
 <!-- markdownlint-disable MD033 MD022 MD042 MD060 -->
 <!-- markdownlint-disable -->
 
-## Memoria Práctica 1 — Vagrant + Docker
+# Memoria Práctica 1 — Vagrant + Docker
 
 | Campo | Valor |
 |---|---|
 | **Asignatura** | Administración de Sistemas Informáticos |
-| **Título** | Práctica 1 — Aprovisionamiento automatizado de una máquina virtual con Vagrant y despliegue de un servicio con Docker y Docker Compose |
+| **Título** | Práctica 1 — Vagrant y Docker |
 | **Grado** | Grado en Ingeniería Informática en Sistemas de Información |
 | **Centro** | Escuela Politécnica Superior de Zamora — Universidad de Salamanca |
 | **Curso académico** | 2026/2027 |
 | **Grupo** | **Grupo 6** |
 | **Autores** | Laura Munera Vahos · Yanira Porras Gago |
-| **Fecha de entrega** | [dd/mm/aaaa] |
-| **Repositorio Git** | [https://github.com/usuario/practica1-vagrant-docker] |
+| **Fecha de entrega** | **29 de septiembre de 2026** |
+| **Repositorio Git** | https://github.com/lauramuneravahos/administracion-sistemas |
 | **Vídeo defensa** | [apellidos_nombre_practica1.mp4] |
+
+<!--
+CAPTURA 1 (opcional): captura de la página principal del repositorio en GitHub.
+Aquí se ve que el repositorio está creado y con los ficheros subidos.
+Sugerencia de nombre de archivo: capturas/01-repositorio-github.png
+-->
 
 ---
 
-## 1. Resumen ejecutivo
+## 1. Introducción
 
-Esta práctica tiene como objetivo **describir infraestructura como código (IaC)** usando dos herramientas estándar en administración de sistemas:
+En esta práctica hemos creado dos máquinas virtuales con **Vagrant** y, dentro de una de ellas, hemos puesto un servicio web (Nginx) usando **Docker**.
 
-- **Vagrant**: describe y crea máquinas virtuales de forma automatizada a partir de un `Vagrantfile`.
-- **Docker + Docker Compose**: despliega el servicio real dentro de un contenedor.
+La idea principal es que **todo se cree solo** con un par de comandos, sin tener que instalar ni configurar nada a mano. Eso se llama "infraestructura como código", porque en lugar de hacer clic en botones, escribimos ficheros de texto que describen lo que queremos.
 
-Se definen **dos máquinas virtuales Ubuntu (`ubuntu/jammy64`)** dentro de un mismo `Vagrantfile`:
+Pasos que seguimos al realizar esta práctica:
 
-- `web` (IP `192.168.56.10`): aloja el contenedor Nginx.
-- `cliente` (IP `192.168.56.11`): se usa para verificar la conectividad y el acceso al servicio.
-
-Toda la infraestructura se levanta con **un único comando (`vagrant up`)** y el servicio con **`docker-compose up -d`**, demostrando que el proceso es **reproducible** por cualquiera.
+- Crear dos máquinas virtuales Ubuntu con Vagrant:
+  - **web** → donde va el servicio web.
+  - **cliente** → para probar que se puede acceder al servicio desde otra máquina.
+- Instalar Docker y Docker Compose automáticamente dentro de la máquina **web**.
+- Poner un contenedor con **Nginx** (un servidor web muy típico) que se levanta con Docker Compose.
+- Comprobar que:
+  - Desde el ordenador donde trabajamos, se ve la página de Nginx.
+  - Desde la máquina **cliente**, se puede hacer `ping` y `curl` a la máquina **web**.
 
 ---
 
 ## 2. Objetivos
 
-- [x] Comprender la diferencia entre **máquina virtual** y **contenedor**.
-- [x] Describir el aprovisionamiento de una VM con un **Vagrantfile**.
-- [x] Automatizar la instalación de software dentro de la VM mediante un **script de aprovisionamiento**.
-- [x] Desplegar un servicio real dentro de un **contenedor Docker** con **Docker Compose**.
-- [x] Desplegar una **segunda VM Ubuntu** en la misma red privada y comprobar la comunicación entre ambas.
-- [x] Verificar que el servicio es accesible **desde otra VM**, no solo desde el anfitrión.
-- [x] Verificar que todo el proceso es **reproducible** desde cero.
-- [x] Practicar **Git** como mecanismo de entrega.
+- [x] Entender la diferencia entre una **máquina virtual** y un **contenedor**.
+- [x] Aprender a describir una máquina virtual con un fichero llamado **Vagrantfile**.
+- [x] Automatizar la instalación de programas dentro de la máquina virtual con un script.
+- [x] Desplegar un servicio real dentro de un **contenedor Docker** usando **Docker Compose**.
+- [x] Crear una segunda máquina Ubuntu y comprobar que las dos se comunican.
+- [x] Ver que el servicio no solo se ve desde nuestro ordenador, sino también desde la otra máquina.
+- [x] Comprobar que todo el proceso se puede repetir desde cero.
+- [x] Usar **Git** para subir el trabajo a un repositorio.
 
 ---
 
-## 3. Conceptos clave
+## 3. Fundamentos teóricos
 
-### 3.1 Máquina virtual vs. contenedor
+### 3.1 Máquina virtual y contenedor
 
-| Aspecto | Máquina virtual | Contenedor |
+Son dos formas de tener "un ordenador dentro de otro", pero se diferencian en varias cosas:
+
+| | Máquina virtual | Contenedor |
 |---|---|---|
-| Qué virtualiza | Hardware completo (CPU, RAM, disco…) | Solo el espacio de usuario |
-| Kernel | Propio | Compartido con el host |
-| Arranque | Minutos | Segundos |
-| Peso | GB | MB |
-| Aislamiento | Total | A nivel de proceso |
+| Qué incluye | Un sistema operativo completo | Solo la aplicación |
+| Cuánto tarda en arrancar | Minutos | Segundos |
+| Cuánto ocupa | Mucho (varios GB) | Poco (unos MB) |
+| Aislamiento | Total | Más ligero |
 | Herramienta | VirtualBox + Vagrant | Docker |
 
-**En esta práctica se combinan**: una VM (creada por Vagrant) como base, y **dentro de ella** un contenedor (Docker) con el servicio real.
+En esta práctica **usamos las dos cosas a la vez**: una máquina virtual como base (creada por Vagrant) y, dentro de ella, un contenedor con el servicio.
+
+<!--
+CAPTURA 2 (recomendada): captura de la ventana de VirtualBox mostrando las dos VMs
+"practica1-web" y "practica1-cliente" en estado "Running".
+Esto evidencia que las máquinas virtuales existen y están funcionando.
+Sugerencia de nombre de archivo: capturas/02-virtualbox-vms.png
+-->
 
 ### 3.2 Hipervisor
 
-Software que hace posible la virtualización. Los de **tipo 1** (bare-metal, como VMware ESXi) se instalan sobre el hardware. Los de **tipo 2** (como **VirtualBox**, el usado aquí) se instalan como una aplicación del sistema anfitrión.
+Es el programa que permite tener máquinas virtuales. Hay dos tipos:
+
+- **Tipo 1**: se instala directamente sobre el hardware (por ejemplo, VMware ESXi).
+- **Tipo 2**: se instala como un programa más dentro de nuestro sistema (por ejemplo, **VirtualBox**, que es el que usamos).
 
 ### 3.3 Vagrant
 
-- **Box**: imagen base de SO (`ubuntu/jammy64`).
-- **Provisioner**: script que se ejecuta automáticamente al crear la VM.
-- **Vagrantfile multi-máquina**: un mismo fichero describe varias VMs con `config.vm.define`.
-- **Red privada (`private_network`)**: segmento aislado con IP fija, que permite a las VMs verse entre sí.
+Es una herramienta que sirve para **crear máquinas virtuales automáticamente** a partir de un fichero de texto llamado `Vagrantfile`. En lugar de crear la máquina a mano en VirtualBox, la describimos en ese fichero y con un solo comando ya se crea.
+
+Algunas partes que aparecen en el fichero:
+
+- **Box**: la imagen base del sistema operativo que se descarga (en nuestro caso `ubuntu/jammy64`).
+- **Provisioner**: el script que se ejecuta solo al crear la máquina, para instalar cosas.
+- **Red privada**: una red interna que conecta nuestras máquinas virtuales entre sí con una IP fija que elegimos nosotros.
 
 ### 3.4 Docker y Docker Compose
 
-- **Imagen**: plantilla de solo lectura.
-- **Contenedor**: instancia en ejecución de una imagen.
-- **Dockerfile**: describe cómo construir una imagen (no se usa en esta práctica).
-- **Docker Compose**: define varios contenedores en un único `docker-compose.yml`.
-- **Kubernetes** (mención): orquestador para múltiples hosts; Compose resuelve un solo host.
+- **Imagen**: la plantilla que sirve para crear contenedores. En esta práctica usamos la imagen oficial **`nginx:latest`**, que se descarga automáticamente desde Docker Hub.
+- **Contenedor**: una imagen que ya está funcionando.
+- **Dockerfile**: un fichero que explica cómo crear una imagen (en esta práctica no lo usamos).
+- **Docker Compose**: una herramienta que permite describir varios contenedores en un solo fichero (`docker-compose.yml`).
+- **Kubernetes**: otro programa más grande que sirve para manejar contenedores en muchos servidores a la vez. Aquí solo lo mencionamos, no lo usamos.
 
 ---
 
-## 4. Entorno de trabajo
+## 4. Requisitos previos
 
 ### 4.1 Software
 
-| Herramienta | Versión | Comprobación |
-|---|---|---|
-| VirtualBox | [7.0.x] | `VBoxManage --version` |
-| Vagrant | [2.4.x] | `vagrant --version` |
-| Git | [2.x] | `git --version` |
-| Editor | VS Code [1.xx] | — |
+| Programa | Para qué sirve |
+|---|---|
+| VirtualBox | Es el programa que crea las máquinas virtuales. |
+| Vagrant | Sirve para crear esas máquinas automáticamente. |
+| Git | Para subir el trabajo a GitHub. |
+| VS Code | Para escribir los ficheros. |
+
+<!--
+CAPTURA 3 (opcional): captura de la terminal mostrando las versiones instaladas.
+Comandos sugeridos: `VBoxManage --version`, `vagrant --version`, `git --version`
+Sugerencia de nombre de archivo: capturas/03-versiones.png
+-->
 
 ### 4.2 Hardware
 
-- Virtualización por hardware (Intel VT-x / AMD-V) **activada en BIOS/UEFI**.
-- Al menos **4 GB de RAM libres** (la VM `web` consume 2 GB).
-- Conexión a Internet (descarga de la box + instalación de paquetes).
+- Tener la **virtualización activada** en la BIOS (es un ajuste del ordenador; sin él, las máquinas virtuales no arrancan).
+- Al menos **4 GB de RAM libres**.
+- Conexión a Internet (para descargar la imagen de Ubuntu y para instalar programas).
 
 ### 4.3 Cuentas
 
-- Cuenta en [GitHub / GitLab] con el repositorio público o con acceso al profesor.
+- Una cuenta en **GitHub** con el correo institucional `lauramuneravahos@usal.es`.
+
+<!--
+CAPTURA 4 (opcional): captura de Settings → Emails en GitHub,
+donde se ve que el correo @usal.es está "Primary" y "Verified".
+Esto evidencia que el correo está bien configurado.
+Sugerencia de nombre de archivo: capturas/04-github-email.png
+-->
 
 ---
 
 ## 5. Estructura del repositorio
 
 ```
-practica1-vagrant-docker/
-├── .gitignore
-├── Vagrantfile
-├── provisioning.sh
-├── docker-compose.yml
-└── README.md
+administracion-sistemas/
+├── .gitattributes        → Para que los ficheros tengan los saltos de línea correctos.
+├── .gitignore            → Para que Git ignore cosas que no queremos subir.
+├── README.md             → Página principal del repositorio.
+├── memoria.md            → Este documento.
+├── Vagrantfile           → Describe las dos máquinas virtuales.
+├── provisioning.sh       → Script que instala Docker y Docker Compose.
+└── docker-compose.yml    → Describe el servicio Nginx.
 ```
 
-### 5.1 `.gitignore`
+<!--
+CAPTURA 5 (recomendada): captura del explorador de archivos de VS Code
+mostrando la carpeta del proyecto con todos los ficheros.
+Sugerencia de nombre de archivo: capturas/05-estructura-proyecto.png
+-->
+
+### 5.1 Fichero `.gitignore`
 
 ```gitignore
 .vagrant/
 *.log
 ```
 
-> Excluye la carpeta `.vagrant/` (estado local de las VMs) y logs. **No se debe subir** al repositorio.
+Con esto hacemos que la carpeta `.vagrant/` (que se crea sola) y los ficheros de log no se suban a GitHub.
+
+### 5.2 Fichero `.gitattributes`
+
+```
+* text=auto eol=lf
+*.sh text eol=lf
+Vagrantfile text eol=lf
+*.yml text eol=lf
+```
+
+Este fichero sirve para que los ficheros se guarden siempre con **saltos de línea de Linux (LF)**. Si se guardaran con saltos de Windows, los scripts fallarían dentro de Ubuntu.
 
 ---
 
-## 6. Desarrollo de la práctica
+## 6. Control de versiones con Git
 
-### 6.1 Paso 1-2 — Preparar el entorno e iniciar el proyecto
+### 6.1 Configuración inicial
+
+Primero creamos una cuenta en **GitHub** con el correo de la universidad (`lauramuneravahos@usal.es`) y desde ahí creamos un repositorio llamado **`administracion-sistemas`**.
+
+Después, en nuestro ordenador, configuramos Git con nuestro nombre y correo:
+
+```bash
+git config --global user.name "LMunera"
+git config --global user.email "lauramuneravahos@usal.es"
+git config --global core.autocrlf input
+```
+
+El último comando sirve para que no se cambien los saltos de línea de los ficheros.
+
+<!--
+CAPTURA 6 (opcional): captura de la terminal mostrando el resultado de
+`git config --global user.email` (debe salir el correo de la USAL).
+Sugerencia de nombre de archivo: capturas/06-git-config.png
+-->
+
+### 6.2 Subida del proyecto
+
+Luego, desde la carpeta del proyecto, hicimos:
+
+```bash
+git init
+git add .
+git commit -m "Práctica 1: Vagrant + Docker (Grupo 6)"
+git branch -M main
+git remote add origin https://github.com/lauramuneravahos/administracion-sistemas.git
+git push -u origin main
+```
+
+La primera vez que hicimos `git push` nos pidió iniciar sesión y se abrió el navegador para autorizarlo. Después ya no hizo falta más.
+
+<!--
+CAPTURA 7 (recomendada): captura de la terminal con el resultado del `git push`
+donde se ve "new branch main -> main" y "branch 'main' set up to track 'origin/main'".
+Sugerencia de nombre de archivo: capturas/07-git-push.png
+-->
+
+---
+
+## 7. Desarrollo de la práctica
+
+### 7.1 Creación del proyecto
 
 ```bash
 mkdir practica1-vagrant-docker
 cd practica1-vagrant-docker
-git init
 vagrant init ubuntu/jammy64
 ```
 
-### 6.2 Paso 3 — Definir las dos VMs y la red privada
+El último comando crea un `Vagrantfile` básico.
 
-`Vagrantfile`:
+### 7.2 Definición de las máquinas virtuales
 
 ```ruby
 Vagrant.configure("2") do |config|
 
-  # ---------- Máquina WEB ----------
   config.vm.define "web" do |web|
     web.vm.box = "ubuntu/jammy64"
     web.vm.hostname = "web"
@@ -157,14 +255,11 @@ Vagrant.configure("2") do |config|
       vb.cpus   = 1
       vb.name   = "practica1-web"
       vb.gui    = false
-      vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-      vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
     end
 
     web.vm.provision "shell", path: "provisioning.sh"
   end
 
-  # ---------- Máquina CLIENTE ----------
   config.vm.define "cliente" do |cli|
     cli.vm.box = "ubuntu/jammy64"
     cli.vm.hostname = "cliente"
@@ -175,70 +270,81 @@ Vagrant.configure("2") do |config|
       vb.cpus   = 1
       vb.name   = "practica1-cliente"
       vb.gui    = false
-      vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-      vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
     end
   end
 
 end
 ```
 
-**Explicación de los bloques clave**:
+Lo importante de este fichero:
 
-| Línea | Función |
-|---|---|
-| `config.vm.define "web"` | Declara una VM con nombre lógico `web`. |
-| `web.vm.box = "ubuntu/jammy64"` | Imagen base Ubuntu 22.04. |
-| `web.vm.network "private_network"` | Red privada con IP fija en la subred `192.168.56.0/24`. |
-| `web.vm.provider "virtualbox"` | Configura recursos de VirtualBox (RAM, CPU, nombre). |
-| `web.vm.provision "shell"` | Ejecuta `provisioning.sh` al crear la VM. |
+- `config.vm.define "web"` sirve para definir la primera máquina.
+- `web.vm.box` es la imagen de Ubuntu que se descarga.
+- `web.vm.network "private_network"` le pone una IP fija.
+- `web.vm.provider "virtualbox"` le dice cuánta memoria y cuántas CPU tiene.
+- `web.vm.provision "shell"` indica que se ejecute el script `provisioning.sh` al crearla.
 
-### 6.3 Paso 4-5 — Automatizar la instalación
+La segunda máquina (`cliente`) es igual, pero con otra IP y sin script, porque no necesita instalar nada.
 
-`provisioning.sh`:
+<!--
+CAPTURA 8 (recomendada): captura del fichero Vagrantfile abierto en VS Code,
+donde se vean los dos bloques config.vm.define.
+Sugerencia de nombre de archivo: capturas/08-vagrantfile.png
+-->
+
+### 7.3 Script de aprovisionamiento
 
 ```bash
 #!/usr/bin/env bash
 set -e
 
-echo ">>> Actualizando sistema..."
 apt-get update
 apt-get upgrade -y
 
-echo ">>> Instalando Docker..."
 curl -fsSL https://get.docker.com | sh
 
-echo ">>> Instalando Docker Compose..."
 apt-get install -y docker-compose
 
-echo ">>> Añadiendo usuario vagrant al grupo docker..."
 usermod -aG docker vagrant
-
-echo ">>> Provisioning completado."
 ```
 
-> ⚠️ **Importante**: guardar el fichero con saltos de línea **LF** (no CRLF), o fallará con `\r: command not found`.
+Este script hace cuatro cosas:
 
-### 6.4 Paso 6 — Levantar ambas máquinas
+1. Actualiza el sistema.
+2. Instala Docker.
+3. Instala Docker Compose.
+4. Añade el usuario `vagrant` al grupo de Docker.
+
+Se ejecuta solo la primera vez que se crea la máquina.
+
+<!--
+CAPTURA 9 (recomendada): captura del fichero provisioning.sh abierto en VS Code.
+Sugerencia de nombre de archivo: capturas/09-provisioning.png
+-->
+
+### 7.4 Creación y arranque de las máquinas
+
+Con este único comando se crean las dos máquinas y se ejecuta el script:
 
 ```bash
 vagrant up
 ```
 
-Vagrant:
-1. Descarga la box `ubuntu/jammy64` (solo la primera vez).
-2. Crea y arranca las dos VMs.
-3. Ejecuta `provisioning.sh` en la VM `web`.
+La primera vez tarda bastante porque descarga la imagen de Ubuntu.
 
-Comprobación:
+Para ver cómo están las máquinas:
 
 ```bash
 vagrant status
 ```
 
-### 6.5 Paso 7-8 — Desplegar el servicio con Docker Compose
+<!--
+CAPTURA 10 (MUY recomendada): captura de la terminal durante o después de `vagrant up`,
+y otra captura de `vagrant status` mostrando las dos VMs como "running".
+Sugerencia de nombre de archivo: capturas/10-vagrant-up-status.png
+-->
 
-`docker-compose.yml`:
+### 7.5 Definición del servicio con Docker Compose
 
 ```yaml
 version: "3"
@@ -251,7 +357,18 @@ services:
     restart: unless-stopped
 ```
 
-Despliegue:
+Este fichero dice:
+
+- Que se descargue la imagen oficial de **Nginx**.
+- Que se publique en el puerto 80.
+- Que si el contenedor se cae, se reinicie solo.
+
+<!--
+CAPTURA 11 (recomendada): captura del fichero docker-compose.yml abierto en VS Code.
+Sugerencia de nombre de archivo: capturas/11-docker-compose.png
+-->
+
+### 7.6 Despliegue del servicio
 
 ```bash
 vagrant ssh web
@@ -261,17 +378,32 @@ docker ps
 exit
 ```
 
-### 6.6 Paso 9 — Verificar desde el anfitrión
+Con esto entramos en la máquina **web**, vamos a la carpeta donde está el fichero y levantamos el contenedor. El comando `docker ps` sirve para ver que está funcionando.
 
-Abrir en el navegador del equipo anfitrión:
+<!--
+CAPTURA 12 (MUY recomendada): captura de la terminal dentro de la VM web
+mostrando la salida de `docker-compose up -d` y de `docker ps`
+(se debe ver el contenedor nginx con el puerto 80 publicado).
+Sugerencia de nombre de archivo: capturas/12-docker-ps.png
+-->
+
+### 7.7 Verificación desde el equipo anfitrión
+
+Abrimos el navegador y ponemos:
 
 ```
 http://192.168.56.10
 ```
 
-Debe mostrarse la página de bienvenida de Nginx.
+Debería aparecer la página de bienvenida de Nginx.
 
-### 6.7 Paso 10 — Comprobar comunicación entre las dos VMs
+<!--
+CAPTURA 13 (MUY recomendada): captura del navegador del equipo anfitrión
+mostrando la página "Welcome to nginx!" en http://192.168.56.10.
+Sugerencia de nombre de archivo: capturas/13-navegador-anfitrion.png
+-->
+
+### 7.8 Verificación de la comunicación entre máquinas
 
 ```bash
 vagrant ssh cliente
@@ -279,139 +411,92 @@ ping -c 3 192.168.56.10
 curl http://192.168.56.10
 ```
 
-Resultado esperado:
-- `ping`: 3 paquetes recibidos, sin pérdida.
-- `curl`: HTML de bienvenida de Nginx.
+- El `ping` sirve para ver si las dos máquinas se ven.
+- El `curl` sirve para ver si la máquina cliente puede acceder al servicio de la máquina web.
 
-**Por qué esto demuestra la comunicación entre VMs**: el `ping` y el `curl` se ejecutan **desde dentro** de la VM `cliente`, no desde el anfitrión. Si responden, es porque ambas VMs están en el mismo segmento de red privada y se ven entre sí, con independencia del equipo anfitrión.
+Esto demuestra que las dos máquinas están conectadas y que el servicio no depende de nuestro ordenador.
+
+<!--
+CAPTURA 14 (MUY recomendada): captura de la terminal dentro de la VM cliente
+mostrando el resultado del `ping -c 3 192.168.56.10` (3 paquetes recibidos)
+y del `curl http://192.168.56.10` (HTML de Nginx).
+Sugerencia de nombre de archivo: capturas/14-ping-curl-cliente.png
+-->
 
 ---
 
-## 7. Verificación de resultados
+## 8. Verificación de resultados
 
-| Comprobación | Comando | Resultado esperado |
+| Qué comprobamos | Cómo | Resultado |
 |---|---|---|
-| VMs arrancadas | `vagrant status` | Ambas `running` |
-| IPs privadas | `ip a` dentro de cada VM | `192.168.56.10` / `192.168.56.11` |
-| Contenedor Nginx | `docker ps` | `nginx:latest` corriendo, puerto `0.0.0.0:80->80/tcp` |
-| Acceso desde anfitrión | Navegador → `http://192.168.56.10` | Página de bienvenida |
-| Conectividad entre VMs | `ping -c 3 192.168.56.10` desde `cliente` | 3/3 paquetes |
-| Servicio desde otra VM | `curl http://192.168.56.10` desde `cliente` | HTML de Nginx |
-| Reproducibilidad | `vagrant destroy -f && vagrant up` | Todo se recrea solo |
+| Que las máquinas están encendidas | `vagrant status` | Las dos dicen "running" |
+| Que tienen las IPs correctas | `ip a` dentro de cada una | `192.168.56.10` y `192.168.56.11` |
+| Que el contenedor funciona | `docker ps` | Nginx en el puerto 80 |
+| Que se ve desde nuestro ordenador | Navegador en `http://192.168.56.10` | Página de Nginx |
+| Que las máquinas se ven | `ping` desde cliente | 3 paquetes recibidos |
+| Que se ve desde la otra máquina | `curl` desde cliente | Página de Nginx |
+| Que se puede repetir desde cero | `vagrant destroy -f` y `vagrant up` | Todo vuelve a funcionar |
+
+<!--
+CAPTURA 15 (opcional): captura del comando `vagrant destroy -f` seguido de `vagrant up`
+para demostrar que todo el proceso se puede repetir desde cero.
+Sugerencia de nombre de archivo: capturas/15-reproducibilidad.png
+-->
 
 ---
 
-## 8. Reproducibilidad
+## 9. Reproducibilidad
 
-Cualquier persona puede reproducir la práctica desde cero:
+Para repetir la práctica desde cero, otra persona solo tiene que hacer:
 
 ```bash
-git clone [URL_DEL_REPOSITORIO]
-cd practica1-vagrant-docker
+git clone https://github.com/lauramuneravahos/administracion-sistemas.git
+cd administracion-sistemas
 vagrant up
 vagrant ssh web
 cd /vagrant && docker-compose up -d
 ```
 
-Requisitos: VirtualBox + Vagrant + Git instalados y virtualización por hardware activada.
+Necesita tener instalado VirtualBox, Vagrant y Git.
 
 ---
 
-## 9. Entrega en Git
+## 10. Conclusiones
 
-```bash
-git add Vagrantfile provisioning.sh docker-compose.yml .gitignore
-git commit -m "Práctica 1: Vagrant + Docker"
-git branch -M main
-git remote add origin [URL_DEL_REPOSITORIO]
-git push -u origin main
-```
+### 10.1 Dificultades encontradas
 
-> La carpeta `.vagrant/` **no se sube** gracias al `.gitignore`.
+- Al principio, Git estaba configurado con un correo personal y tuvimos que cambiarlo al de la universidad para que los commits se vieran bien en GitHub.
+- Nos salió un aviso sobre los saltos de línea (LF y CRLF) y lo solucionamos cambiando una configuración y añadiendo un fichero `.gitattributes`.
+- La primera descarga de la imagen de Ubuntu tardó bastante.
 
----
+### 10.2 Aprendizajes
 
-## 10. Vídeo de defensa
+- Que se puede describir todo un entorno en ficheros de texto y crearlo con un solo comando.
+- Que Vagrant sirve para no tener que crear las máquinas virtuales a mano.
+- Que Docker Compose hace mucho más fácil levantar un servicio.
+- Que la red privada es lo que permite que las dos máquinas se vean entre ellas.
+- Que usar bien Git (con el correo correcto y con los ficheros bien configurados) evita muchos problemas.
 
-### 10.1 Especificaciones del enunciado
+### 10.3 Aplicación en el mundo real
 
-| Requisito | Valor |
-|---|---|
-| Duración | 5–10 minutos |
-| Formato | `.mp4` |
-| Resolución mínima | 1080p |
-| Audio | Claro, en primer plano, sin ruido de fondo |
-| Pantalla | Completa (terminal + editor + navegador), no recortes |
-| Nombre del archivo | `apellidos_nombre_practica1.mp4` |
-| Entrega | Subir a Studium + enlace al repo en el propio envío |
-
-### 10.2 Guion del vídeo (reparto Grupo 6)
-
-| Tiempo | Contenido | Responsable |
-|---|---|---|
-| 0:00–0:15 | Presentación: nombres, Grupo 6, qué se va a mostrar | Laura / Yanira |
-| 0:15–1:30 | Explicación de VM vs contenedor, Vagrant, Docker, Compose | Ambas |
-| 1:30–3:30 | `Vagrantfile` + `provisioning.sh` bloque a bloque | Laura |
-| 3:30–5:30 | `vagrant destroy -f && vagrant up` desde cero | Laura |
-| 5:30–6:30 | `docker-compose.yml` + `docker-compose up -d` + `docker ps` | Yanira |
-| 6:30–7:30 | Navegador del anfitrión → `http://192.168.56.10` | Yanira |
-| 7:30–8:30 | `vagrant ssh cliente` → `ping` + `curl` | Yanira |
-| 8:30–9:30 | Cierre: dificultades, aprendizajes, caso real | Ambas |
-
-### 10.3 Checklist antes de grabar
-
-- [ ] `vagrant up` funciona desde cero sin pasos manuales.
-- [ ] `docker-compose up -d` levanta el servicio correctamente.
-- [ ] El servicio es accesible desde el navegador del anfitrión.
-- [ ] `ping` entre las dos VMs responde.
-- [ ] `curl` desde la VM `cliente` llega al servicio de la VM `web`.
-- [ ] `.vagrant/` no está incluida en el repositorio.
-- [ ] `Vagrantfile`, `provisioning.sh` y `docker-compose.yml` están subidos a Git.
-- [ ] Vídeo grabado explicando **cada fichero**, no solo el resultado final.
+Cuando un equipo de trabajo quiere que cualquiera pueda tener el mismo entorno en su ordenador, usa herramientas como estas. Vagrant describe las máquinas y Docker describe el servicio. Así todos trabajan igual sin tener que instalar cosas a mano.
 
 ---
 
-## 11. Criterios de evaluación (orientativos)
+## 11. Bibliografía y referencias
 
-| Criterio | Peso | Estado |
-|---|---|---|
-| Automatización correcta (`vagrant up` sin pasos manuales) | 25 % | [ ] |
-| Servicio Docker accesible y `docker-compose.yml` correcto | 20 % | [ ] |
-| Comunicación entre las dos VMs verificada (`ping` y `curl`) | 20 % | [ ] |
-| Claridad y corrección de las explicaciones en el vídeo | 20 % | [ ] |
-| Calidad del repositorio (ficheros correctos, sin ruido) | 8 % | [ ] |
-| Formato y duración del vídeo conforme al guion | 7 % | [ ] |
+### 11.1 Documentación oficial
 
----
-
-## 12. Conclusiones y dificultades
-
-### 12.1 Dificultades encontradas
-
-- [Ejemplo: la primera descarga de la box tardó X minutos.]
-- [Ejemplo: el script `provisioning.sh` fallaba por CRLF; se solucionó cambiando a LF.]
-- [Ejemplo: la red privada no aparecía hasta reiniciar VirtualBox.]
-
-### 12.2 Aprendizajes
-
-- La infraestructura como código permite **reproducir entornos con un solo comando**.
-- Vagrant abstrae la GUI de VirtualBox y permite versionar la definición de la VM.
-- Docker Compose simplifica el despliegue de servicios frente a `docker run` manual.
-- La red privada es la clave para que dos VMs se comuniquen sin depender del anfitrión.
-
-### 12.3 Paralelismo con un caso real
-
-Este flujo es exactamente lo que hace un equipo de desarrollo cuando quiere que **cualquier compañero levante el entorno completo con un solo comando**: Vagrant describe la infraestructura y Docker describe el servicio. Esto es la base de la **Infrastructure as Code (IaC)** que se profundizará en bloques posteriores.
-
----
-
-## 13. Referencias
-
-- Documentación oficial de Vagrant: https://developer.hashicorp.com/vagrant/docs
-- Documentación oficial de Docker: https://docs.docker.com/
+- Vagrant: https://developer.hashicorp.com/vagrant/docs
+- Docker: https://docs.docker.com/
 - Docker Compose: https://docs.docker.com/compose/
-- Box `ubuntu/jammy64`: https://app.vagrantup.com/ubuntu/boxes/jammy64
+- La imagen de Ubuntu que usamos: https://app.vagrantup.com/ubuntu/boxes/jammy64
+- GitHub: https://docs.github.com/
+
+### 11.2 Herramientas de apoyo utilizadas
+
+- **Gemini** (Google): ayuda para resolver dudas puntuales durante la práctica.
+- **NotebookLM** (Google): apoyo para consultar los apuntes de la asignatura.
+- **DeepSeek**: ayuda para resolver errores en los comandos de Git y Docker.
 
 ---
-
-> **Nota final (Grupo 6)**: recuerda que el vídeo defensa es **parte de la evaluación**. El repositorio por sí solo no es suficiente; hay que demostrar que se entiende qué hace cada fichero y por qué.
